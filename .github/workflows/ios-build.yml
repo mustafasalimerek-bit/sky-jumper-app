@@ -1,0 +1,75 @@
+name: iOS Build (Unsigned IPA)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build unsigned .app (Release, iphoneos)
+        run: |
+          set -e
+          cd ios/App
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_BITCODE=NO \
+            -quiet \
+            build
+
+      - name: Package as .ipa (unsigned)
+        run: |
+          set -e
+          APP_DIR="ios/App/build/Build/Products/Release-iphoneos"
+          if [ ! -d "$APP_DIR/App.app" ]; then
+            echo "App.app not found at $APP_DIR" >&2
+            ls -la "$APP_DIR" || true
+            exit 1
+          fi
+          cd "$APP_DIR"
+          rm -rf Payload SkyJumper-unsigned.ipa
+          mkdir Payload
+          cp -R App.app Payload/App.app
+          # Strip any embedded signature so Sideloadly can sign cleanly
+          rm -rf Payload/App.app/_CodeSignature || true
+          rm -f Payload/App.app/embedded.mobileprovision || true
+          zip -qr SkyJumper-unsigned.ipa Payload
+          ls -lh SkyJumper-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyJumper-iOS-unsigned
+          path: ios/App/build/Build/Products/Release-iphoneos/SkyJumper-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

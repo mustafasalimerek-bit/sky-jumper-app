@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+android/captures/
+ios/App/build/
+ios/App/Pods/
+ios/DerivedData/
+ios/App/output/
+**/.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Logs / misc
+*.log
+npm-debug.log*
+.npm
+.env
+.env.local

@@ -1,0 +1,21 @@
+{
+  "appId": "com.skyjumper.app",
+  "appName": "Sky Jumper",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "AdMob": {
+      "appId": "ca-app-pub-3940256099942544~3347511713"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0f0c29",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "iosSpinnerStyle": "large"
+    }
+  }
+}

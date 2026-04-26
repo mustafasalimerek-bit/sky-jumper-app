@@ -1,0 +1,23 @@
+{
+  "name": "sky-jumper",
+  "version": "1.0.0",
+  "description": "Sky Jumper - neon arcade game with AdMob + IAP",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "add:ios": "cap add ios",
+    "add:android": "cap add android",
+    "run:android": "cap run android",
+    "run:ios": "cap run ios"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
+    "@capacitor/splash-screen": "^8.0.1"
+  }
+}
