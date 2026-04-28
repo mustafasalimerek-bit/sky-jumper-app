@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -143,31 +143,31 @@
   <div class="overlay" id="start">
     <span class="badge">Arcade · Neon</span>
     <h1>SKY<br>JUMPER</h1>
-    <p>← → tuşları veya parmağınla hareket et<br>Sonsuza dek yüksel!</p>
+    <p>Slide left/right with finger or ← → keys<br>Climb forever!</p>
     <div class="legend">
       <div class="leg"><div class="dot" style="background:#a78bfa"></div>Normal</div>
-      <div class="leg"><div class="dot" style="background:#ffd700"></div>Yay</div>
-      <div class="leg"><div class="dot" style="background:#00ffff"></div>Hareketli</div>
-      <div class="leg"><div class="dot" style="background:#ff4080"></div>Kırılır</div>
-      <div class="leg"><div class="dot" style="background:#ff0033"></div>Ölüm <span style="opacity:0.55;font-size:9px;letter-spacing:1px;">50K+</span></div>
+      <div class="leg"><div class="dot" style="background:#ffd700"></div>Spring</div>
+      <div class="leg"><div class="dot" style="background:#00ffff"></div>Moving</div>
+      <div class="leg"><div class="dot" style="background:#ff4080"></div>Breakable</div>
+      <div class="leg"><div class="dot" style="background:#ff0033"></div>Death <span style="opacity:0.55;font-size:9px;letter-spacing:1px;">50K+</span></div>
     </div>
-    <button class="btn btn-primary" onclick="startGame()">OYNA</button>
+    <button class="btn btn-primary" onclick="startGame()">PLAY</button>
   </div>
 
   <div class="overlay hidden" id="over">
     <span class="badge" id="badge">Game Over</span>
     <h1 id="overTitle">GAME<br>OVER</h1>
-    <p>Skor <strong id="finalScore" style="font-size:32px;display:block;margin-top:6px;">0</strong></p>
+    <p>Score <strong id="finalScore" style="font-size:32px;display:block;margin-top:6px;">0</strong></p>
     <button class="btn btn-ad" id="adBtn" onclick="onWatchAd()">
-      <span class="btn-icon">▶</span> REKLAM İZLE & DEVAM ET
+      <span class="btn-icon">▶</span> WATCH AD &amp; CONTINUE
     </button>
     <button class="btn btn-premium" id="premiumBtn" onclick="onBuyPremium()">
-      <span class="btn-icon">★</span> PREMIUM AL <span class="price">$2.99</span>
+      <span class="btn-icon">★</span> GET PREMIUM <span class="price">$2.99</span>
     </button>
     <button class="btn btn-tip hidden" id="tipBtn" onclick="onTip()">
-      <span class="btn-icon">☕</span> KAHVE ISMARLA
+      <span class="btn-icon">☕</span> BUY ME A COFFEE
     </button>
-    <button class="btn btn-secondary" onclick="startGame()">YENİDEN BAŞLA</button>
+    <button class="btn btn-secondary" onclick="startGame()">RESTART</button>
   </div>
 </div>
 
@@ -260,17 +260,17 @@ const Monetization = {
       // FULL FREEMIUM
       adBtn.classList.remove('hidden');
       if (this.isPremium) {
-        adBtn.innerHTML = '<span class="btn-icon">★</span> DEVAM ET (PREMIUM)';
+        adBtn.innerHTML = '<span class="btn-icon">★</span> CONTINUE (PREMIUM)';
         premiumBtn.classList.add('hidden');
       } else {
-        adBtn.innerHTML = '<span class="btn-icon">▶</span> REKLAM İZLE & DEVAM ET';
+        adBtn.innerHTML = '<span class="btn-icon">▶</span> WATCH AD &amp; CONTINUE';
         premiumBtn.classList.remove('hidden');
       }
       if (tipBtn) tipBtn.classList.add('hidden');
     } else if (Platform.isPortal) {
-      // PORTAL — sadece rewarded ad, IAP yok, tip yok
+      // PORTAL — rewarded ad only, no IAP, no tip
       adBtn.classList.remove('hidden');
-      adBtn.innerHTML = '<span class="btn-icon">▶</span> REKLAM İZLE & DEVAM ET';
+      adBtn.innerHTML = '<span class="btn-icon">▶</span> WATCH AD &amp; CONTINUE';
       premiumBtn.classList.add('hidden');
       if (tipBtn) tipBtn.classList.add('hidden');
     } else {
@@ -332,7 +332,7 @@ const Monetization = {
         return !!result;
       } catch (e) {
         console.warn('[AdMob] show failed:', e);
-        showToast('Reklam yüklenemedi');
+        showToast('Ad failed to load');
         return false;
       }
     }
@@ -354,7 +354,7 @@ const Monetization = {
         }
       } catch (e) {
         console.warn('[Portal] rewarded ad failed:', e);
-        showToast('Reklam yüklenemedi');
+        showToast('Ad failed to load');
         return false;
       }
     }
@@ -369,11 +369,11 @@ const Monetization = {
       overlay.className = 'ad-overlay';
       overlay.innerHTML = `
         <div class="ad-content">
-          <div class="ad-label">Reklam · Demo</div>
+          <div class="ad-label">Ad · Demo</div>
           <div class="ad-mock">🎮</div>
-          <div class="ad-title">Harika Bir Oyun!</div>
-          <div class="ad-sub">Tarayıcı modunda sahte reklam — gerçek build'de AdMob ödüllü reklamı oynar.</div>
-          <div class="ad-timer">Bekle: <span id="adT">3</span>s</div>
+          <div class="ad-title">An Amazing Game!</div>
+          <div class="ad-sub">Browser preview — real builds play AdMob rewarded video here.</div>
+          <div class="ad-timer">Wait: <span id="adT">3</span>s</div>
         </div>
       `;
       document.body.appendChild(overlay);
@@ -396,24 +396,24 @@ const Monetization = {
 
     if (this.isNative) {
       try {
-        showToast('Satın alma başlatılıyor…');
-        // Gerçek IAP akışı buraya: StoreKit / Play Billing
-        // Plugin yüklendiğinde bu kod aktif olur
+        showToast('Starting purchase…');
+        // Real IAP flow goes here: StoreKit / Play Billing
+        // This activates once the IAP plugin is wired up
         await new Promise(r => setTimeout(r, 800));
       } catch (e) {
         console.warn('[IAP] purchase failed:', e);
-        showToast('Satın alma başarısız');
+        showToast('Purchase failed');
         return false;
       }
     } else {
-      const ok = confirm('DEMO MOD\n\nGerçek build\'de Apple/Google ödeme ekranı açılır.\n\n$2.99 satın alımını simüle etmek için Tamam\'a basın.');
+      const ok = confirm('DEMO MODE\n\nReal builds will open the Apple/Google payment sheet.\n\nClick OK to simulate a $2.99 purchase.');
       if (!ok) return false;
     }
 
     this.isPremium = true;
     localStorage.setItem('skyJumperPremium', '1');
     this.updateUI();
-    showToast('★ Premium aktif! Sınırsız continue açıldı');
+    showToast('★ Premium active! Unlimited continues unlocked');
     return true;
   }
 };
@@ -977,9 +977,9 @@ function showToast(msg, ms = 2400) {
     if (score > highScore) {
       highScore = score;
       localStorage.setItem(HIGH_KEY, score);
-      document.getElementById('badge').textContent = 'YENİ REKOR';
+      document.getElementById('badge').textContent = 'NEW RECORD';
       document.getElementById('badge').classList.add('gold');
-      document.getElementById('overTitle').innerHTML = 'YENİ<br>REKOR';
+      document.getElementById('overTitle').innerHTML = 'NEW<br>RECORD';
     } else {
       document.getElementById('badge').textContent = 'Game Over';
       document.getElementById('badge').classList.remove('gold');
@@ -996,7 +996,7 @@ function showToast(msg, ms = 2400) {
       adBtn.disabled = false;
     } else {
       adBtn.disabled = true;
-      adBtn.innerHTML = '<span class="btn-icon">⊘</span> BU OYUNDA REVIVE BİTTİ';
+      adBtn.innerHTML = '<span class="btn-icon">⊘</span> NO REVIVES LEFT THIS RUN';
     }
 
     document.getElementById('over').classList.remove('hidden');
@@ -1021,7 +1021,7 @@ function showToast(msg, ms = 2400) {
     if (ok) {
       if (!Monetization.isPremium) canRevive = false;
       revive();
-      showToast('Devam!');
+      showToast('Continue!');
     }
   };
 
@@ -1035,7 +1035,7 @@ function showToast(msg, ms = 2400) {
 
   window.onTip = function() {
     try { window.open(Monetization.TIP_URL, '_blank', 'noopener,noreferrer'); }
-    catch (e) { showToast('Link açılamadı'); }
+    catch (e) { showToast('Could not open link'); }
   };
 
   window.addEventListener('keydown', e => {
