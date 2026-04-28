@@ -1,8 +1,8 @@
 name: iOS Build (Unsigned IPA)
 
+# NOT: Şu an App Store hedeflemiyoruz, push'larda otomatik tetiklenmesin.
+# İhtiyaç olursa: GitHub repo > Actions sekmesi > "iOS Build" > Run workflow
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 jobs:
