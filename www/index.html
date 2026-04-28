@@ -70,6 +70,7 @@
   .btn-primary{background:linear-gradient(45deg,#ff00ff,#00ffff);box-shadow:0 8px 22px rgba(255,0,255,0.45);}
   .btn-ad{background:linear-gradient(45deg,#10b981,#059669);box-shadow:0 8px 22px rgba(16,185,129,0.4);}
   .btn-premium{background:linear-gradient(45deg,#ffd700,#ff9500);color:#1a0a00;box-shadow:0 8px 22px rgba(255,215,0,0.45);}
+  .btn-tip{background:linear-gradient(45deg,#ff6b6b,#ee5a52);box-shadow:0 8px 22px rgba(255,107,107,0.4);}
   .btn-secondary{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);}
   .btn-icon{font-size:18px;line-height:1;}
   .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important;}
@@ -163,6 +164,9 @@
     <button class="btn btn-premium" id="premiumBtn" onclick="onBuyPremium()">
       <span class="btn-icon">★</span> PREMIUM AL <span class="price">$2.99</span>
     </button>
+    <button class="btn btn-tip hidden" id="tipBtn" onclick="onTip()">
+      <span class="btn-icon">☕</span> KAHVE ISMARLA
+    </button>
     <button class="btn btn-secondary" onclick="startGame()">YENİDEN BAŞLA</button>
   </div>
 </div>
@@ -171,41 +175,109 @@
 
 <script>
 /* =========================================================
+   PLATFORM DETECTION
+   - mobile: Capacitor native app (iOS/Android)
+   - portal: HTML5 game portal (Crazy Games, Poki, GameMonetize, vb.)
+   - web:    Kendi web sürümü (itch.io, GitHub Pages, custom domain)
+   ========================================================= */
+const Platform = {
+  isMobile: false, isPortal: false, isOwnWeb: true,
+  detect() {
+    this.isMobile = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    const ref  = (document.referrer || '').toLowerCase();
+    const host = (window.location.hostname || '').toLowerCase();
+    const portalSDK = !!(
+      (window.CrazyGames && window.CrazyGames.SDK) ||
+      window.PokiSDK || window.gdsdk || window.GameDistribution
+    );
+    const portalRegex = /crazygames|poki\.com|gamedistribution|gamemonetize|y8\.com|newgrounds|coolmathgames/;
+    this.isPortal  = !this.isMobile && (portalSDK || portalRegex.test(ref) || portalRegex.test(host));
+    this.isOwnWeb  = !this.isMobile && !this.isPortal;
+  },
+  mode() { return this.isMobile ? 'mobile' : (this.isPortal ? 'portal' : 'web'); }
+};
+Platform.detect();
+
+/* =========================================================
    MONETIZATION MODULE
-   - Capacitor varsa AdMob + IAP plugin'leri kullanılır
-   - Browser'da fake reklam/ödeme simülasyonu çalışır
+   - mobile: AdMob (rewarded) + Apple/Google IAP (premium)
+   - portal: Portal SDK (Crazy Games / Poki) rewarded ad, IAP yok
+   - web:    Reklam yok, IAP yok, opsiyonel tip jar (Ko-fi)
    ========================================================= */
 const Monetization = {
   isPremium: false,
   adLoaded: false,
-  isNative: false,
+  isNative: false, // backward compat — Platform.isMobile ile aynı
 
-  AD_UNIT_REWARDED: 'ca-app-pub-3940256099942544/5224354917', // AdMob TEST ID
+  AD_UNIT_REWARDED: 'ca-app-pub-3940256099942544/5224354917', // AdMob TEST ID — store öncesi kendi ID'inle değiştir
   PRODUCT_ID_PREMIUM: 'sky_jumper_premium_v1',
+  TIP_URL: 'https://ko-fi.com/skyjumper', // Web tip jar — kendi Ko-fi/BMC link'inle değiştir
 
   async init() {
     this.isPremium = localStorage.getItem('skyJumperPremium') === '1';
-    this.isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    this.isNative = Platform.isMobile;
+    console.log('[Monetization] Platform mode:', Platform.mode());
     this.updateUI();
 
-    if (this.isNative) {
+    if (Platform.isMobile) {
       await this.initAdMob();
       await this.initIAP();
+    } else if (Platform.isPortal) {
+      await this.initPortalSDK();
     } else {
-      console.log('[Monetization] Browser modunda — fake reklam/ödeme simüle edilir');
+      // Own web — sade mod, sadece oyun + opsiyonel tip jar
+      console.log('[Monetization] Free web mode — no ads, optional tip jar');
     }
   },
 
+  async initPortalSDK() {
+    try {
+      if (window.CrazyGames && window.CrazyGames.SDK) {
+        await window.CrazyGames.SDK.init();
+        console.log('[Portal] CrazyGames SDK ready');
+        this.adLoaded = true;
+      } else if (window.PokiSDK) {
+        await window.PokiSDK.init();
+        console.log('[Portal] Poki SDK ready');
+        this.adLoaded = true;
+      } else if (window.gdsdk) {
+        console.log('[Portal] GameDistribution SDK detected');
+        this.adLoaded = true;
+      }
+    } catch (e) { console.warn('[Portal] SDK init failed:', e); }
+  },
+
   updateUI() {
-    document.getElementById('premiumBadge').classList.toggle('active', this.isPremium);
     const adBtn = document.getElementById('adBtn');
     const premiumBtn = document.getElementById('premiumBtn');
-    if (this.isPremium) {
-      adBtn.innerHTML = '<span class="btn-icon">★</span> DEVAM ET (PREMIUM)';
-      premiumBtn.classList.add('hidden');
-    } else {
+    const tipBtn = document.getElementById('tipBtn');
+    const badge = document.getElementById('premiumBadge');
+
+    // Premium badge sadece mobil + premium aktif iken görünür
+    badge.classList.toggle('active', this.isPremium && Platform.isMobile);
+
+    if (Platform.isMobile) {
+      // FULL FREEMIUM
+      adBtn.classList.remove('hidden');
+      if (this.isPremium) {
+        adBtn.innerHTML = '<span class="btn-icon">★</span> DEVAM ET (PREMIUM)';
+        premiumBtn.classList.add('hidden');
+      } else {
+        adBtn.innerHTML = '<span class="btn-icon">▶</span> REKLAM İZLE & DEVAM ET';
+        premiumBtn.classList.remove('hidden');
+      }
+      if (tipBtn) tipBtn.classList.add('hidden');
+    } else if (Platform.isPortal) {
+      // PORTAL — sadece rewarded ad, IAP yok, tip yok
+      adBtn.classList.remove('hidden');
       adBtn.innerHTML = '<span class="btn-icon">▶</span> REKLAM İZLE & DEVAM ET';
-      premiumBtn.classList.remove('hidden');
+      premiumBtn.classList.add('hidden');
+      if (tipBtn) tipBtn.classList.add('hidden');
+    } else {
+      // OWN WEB — sade, opsiyonel tip jar
+      adBtn.classList.add('hidden');
+      premiumBtn.classList.add('hidden');
+      if (tipBtn) tipBtn.classList.remove('hidden');
     }
   },
 
@@ -250,12 +322,13 @@ const Monetization = {
   async showRewardedAd() {
     if (this.isPremium) return true;
 
-    if (this.isNative && this.adLoaded) {
+    // Mobile: AdMob native rewarded
+    if (Platform.isMobile && this.adLoaded) {
       try {
         const { AdMob } = window.Capacitor.Plugins;
         const result = await AdMob.showRewardVideoAd();
         this.adLoaded = false;
-        this.preloadRewardedAd(); // sonraki için
+        this.preloadRewardedAd();
         return !!result;
       } catch (e) {
         console.warn('[AdMob] show failed:', e);
@@ -263,6 +336,30 @@ const Monetization = {
         return false;
       }
     }
+
+    // Portal: their SDK rewarded
+    if (Platform.isPortal) {
+      try {
+        if (window.CrazyGames && window.CrazyGames.SDK && window.CrazyGames.SDK.ad) {
+          await window.CrazyGames.SDK.ad.requestAd('rewarded');
+          return true;
+        }
+        if (window.PokiSDK && window.PokiSDK.rewardedBreak) {
+          const result = await window.PokiSDK.rewardedBreak();
+          return result !== false;
+        }
+        if (window.gdsdk && window.gdsdk.showAd) {
+          await window.gdsdk.showAd('rewarded');
+          return true;
+        }
+      } catch (e) {
+        console.warn('[Portal] rewarded ad failed:', e);
+        showToast('Reklam yüklenemedi');
+        return false;
+      }
+    }
+
+    // Own web — fake demo (gerçekte web'de revive butonu zaten gizli olacak)
     return await this.simulateAd();
   },
 
@@ -890,11 +987,13 @@ function showToast(msg, ms = 2400) {
     }
     document.getElementById('finalScore').textContent = score;
 
-    // Reklam butonu durumu: premium değilse ve bu round revive hakkı varsa açık
+    // Mod-aware buton durumu
+    Monetization.updateUI();
     const adBtn = document.getElementById('adBtn');
-    if (Monetization.isPremium || canRevive) {
+    if (Platform.isOwnWeb) {
+      // Web modunda zaten updateUI() ad butonunu gizledi — bir şey yapma
+    } else if (Monetization.isPremium || canRevive) {
       adBtn.disabled = false;
-      adBtn.style.display = '';
     } else {
       adBtn.disabled = true;
       adBtn.innerHTML = '<span class="btn-icon">⊘</span> BU OYUNDA REVIVE BİTTİ';
@@ -932,6 +1031,11 @@ function showToast(msg, ms = 2400) {
       // Premium alındıktan sonra hemen ücretsiz revive
       revive();
     }
+  };
+
+  window.onTip = function() {
+    try { window.open(Monetization.TIP_URL, '_blank', 'noopener,noreferrer'); }
+    catch (e) { showToast('Link açılamadı'); }
   };
 
   window.addEventListener('keydown', e => {
