@@ -1,0 +1,49 @@
+name: Deploy to itch.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'www/**'
+      - '.github/workflows/itchio-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: "itchio"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install butler
+        run: |
+          set -e
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Generate version string
+        id: version
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          DATE=$(date -u +"%Y%m%d.%H%M")
+          echo "version=${DATE}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.mse }}
+        run: |
+          ./butler push www/ algogamer/sky-jumper:html5 \
+            --userversion "${{ steps.version.outputs.version }}"
+
+      - name: Show build status
+        env:
+          BUTLER_API_KEY: ${{ secrets.mse }}
+        run: ./butler status algogamer/sky-jumper:html5
