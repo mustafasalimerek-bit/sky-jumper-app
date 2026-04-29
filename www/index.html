@@ -165,7 +165,7 @@
       <span class="btn-icon">★</span> GET PREMIUM <span class="price">$2.99</span>
     </button>
     <button class="btn btn-tip hidden" id="tipBtn" onclick="onTip()">
-      <span class="btn-icon">☕</span> BUY ME A COFFEE
+      <span class="btn-icon">💜</span> SUPPORT ON ITCH.IO
     </button>
     <button class="btn btn-secondary" onclick="startGame()">RESTART</button>
   </div>
@@ -230,6 +230,8 @@ const Monetization = {
     }
   },
 
+  GAMEMONETIZE_GAME_ID: '3vu9yoa5va898fu244yqin5jbwg3199o',
+
   async initPortalSDK() {
     try {
       if (window.CrazyGames && window.CrazyGames.SDK) {
@@ -244,7 +246,35 @@ const Monetization = {
         console.log('[Portal] GameDistribution SDK detected');
         this.adLoaded = true;
       }
+
+      // GameMonetize SDK — sadece GM iframe'inde yüklenir (referrer/host check)
+      const ref = (document.referrer || '').toLowerCase();
+      const host = (window.location.hostname || '').toLowerCase();
+      const isGM = /gamemonetize/.test(ref) || /gamemonetize/.test(host);
+      if (isGM && !window.sdk) {
+        await this.loadGameMonetizeSDK();
+      }
     } catch (e) { console.warn('[Portal] SDK init failed:', e); }
+  },
+
+  loadGameMonetizeSDK() {
+    return new Promise((resolve) => {
+      // GameMonetize SDK options
+      window.SDK_OPTIONS = {
+        gameId: this.GAMEMONETIZE_GAME_ID,
+        onEvent: (e) => {
+          console.log('[GM SDK]', e.name);
+          // Olası event'ler: SDK_GAME_PAUSE, SDK_GAME_START, SDK_READY, SDK_ERROR
+          if (e.name === 'SDK_READY') { this.adLoaded = true; }
+        }
+      };
+      const s = document.createElement('script');
+      s.src = 'https://api.gamemonetize.com/sdk.js';
+      s.async = true;
+      s.onload = () => { console.log('[GM SDK] loaded'); resolve(); };
+      s.onerror = () => { console.warn('[GM SDK] failed to load'); resolve(); };
+      document.head.appendChild(s);
+    });
   },
 
   updateUI() {
@@ -350,6 +380,15 @@ const Monetization = {
         }
         if (window.gdsdk && window.gdsdk.showAd) {
           await window.gdsdk.showAd('rewarded');
+          return true;
+        }
+        // GameMonetize SDK: sdk_show_rewarded() veya sdk_show()
+        if (typeof window.sdk_show_rewarded === 'function') {
+          await window.sdk_show_rewarded();
+          return true;
+        }
+        if (typeof window.sdk_show === 'function') {
+          await window.sdk_show();
           return true;
         }
       } catch (e) {
@@ -971,9 +1010,26 @@ function showToast(msg, ms = 2400) {
     if (running) requestAnimationFrame(loop);
   }
 
+  let gameOverCount = 0;
+
   function endGame() {
     running = false;
     Sfx.stopBg();
+    gameOverCount++;
+
+    // GameMonetize: her game over'da interstitial reklam göster (verify pass + ad revenue)
+    // Cooldown 45sn — çok sık ad göstermemek için
+    if (Platform.isPortal) {
+      try {
+        const lastAd = parseInt(sessionStorage.getItem('lastAdMs') || '0', 10);
+        if (Date.now() - lastAd > 45000 && typeof window.sdk_show === 'function') {
+          window.sdk_show().then(() => {
+            sessionStorage.setItem('lastAdMs', Date.now().toString());
+          }).catch(e => console.warn('[GM SDK] interstitial failed:', e));
+        }
+      } catch (e) { /* sessizce devam */ }
+    }
+
     if (score > highScore) {
       highScore = score;
       localStorage.setItem(HIGH_KEY, score);
